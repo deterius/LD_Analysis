@@ -1,4 +1,12 @@
 import streamlit as st
+import datetime
+
+# import database as db 
+import helpers as hp
+import helpers2 as hp2
+import skhelper as skh
+
+from sklearn.preprocessing import MinMaxScaler
 
 st.set_page_config (
     page_title = 'Revenue Dashboard Example',
@@ -17,6 +25,7 @@ import numpy as np
 
 # import database as db 
 import helpers as hp
+import helpers2 as hp2
 import plotly.express as px
 
 
@@ -25,9 +34,13 @@ st.title('Revenue Dashboard')
 st.subheader('Revenue Results per store')
 
 # date selectior
-date_options = st.selectbox(
-    'Select date view:',
-    ['week_num','month','date'])
+date_options = {
+    'No Grouping': None,
+    'Group by Month': 'M',
+    'Group by Week Number': 'W'
+}
+group_by = st.selectbox('Select Grouping Option', list(date_options.keys()))
+
 
 dfx = pd.read_excel('data/xtd.xlsx',engine='openpyxl', header=12)
 dfk = pd.read_excel('data/kc.xlsx',engine='openpyxl', header=12)
@@ -37,15 +50,36 @@ dfx = hp.main_clean(dfx)
 dfk = hp.main_clean(dfk)
 dfp = hp.main_clean(dfp)
 
+
 # Covert to Datetime Add Week, Month, Year, weekday
 df = pd.concat([dfx,dfk, dfp]).groupby('date').sum()
+df = df.reset_index()
+# df specify time window:
+# Add input widgets for minimum and maximum dates
+# Convert the 'date' column to datetime.date objects
+df['date'] = pd.to_datetime(df['date']).dt.date
+# Add input widgets for minimum and maximum dates
+min_date = st.date_input('Minimum Date', value=min(df['date']))
+max_date = st.date_input('Maximum Date', value=max(df['date']))
+# Filter the DataFrame based on the specified time period
+mask = (df['date'] >= min_date) & (df['date'] <= max_date)
+df = df[mask]
+
+df = df.set_index('date')
+
+
+
+
 df.index = pd.to_datetime(df.index)
 df['month'] = df.index.month
 df['week_num'] = df.index.isocalendar().week
 df['week_day']= df.index.weekday
-df['year'] =df.index.year
+df['year'] = df.index.year
  # remove week 52 
 df.loc[df['week_num'] == 52, 'week_num'] = 0
+
+
+
 
  # remove hours and others from the date column
 df.index = df.index.strftime('%Y-%m-%d')
@@ -62,13 +96,27 @@ df.loc[df['week_day'] == 6, 'week_day'] = '7-sunday'
 # make 'date' a column
 df = df.reset_index()
 
+
 # drop unecessary columns
-drop_cols = ['date','week_num','month','year','Checks', 'Discounts', 'Gross Sales', 'Per Check','Void','Avg Mins','Taxes', 'Avg Price','Avg Spend','Per Guest']
+drop_cols = ['week_num','month','year','Checks', 'Discounts', 'Gross Sales', 'Per Check','Void','Avg Mins','Taxes', 'Avg Price','Avg Spend','Per Guest']
 if date_options != 'date':
     drop_cols.append('week_day')
 
-# Metric results
-df_metric = df.groupby(date_options).sum()
+# Metric results / group by date
+df['date'] = pd.to_datetime(df['date'])
+
+exclude_columns = ['Year','date','week_num']
+group_column = date_options[group_by]
+agg_functions = {column: 'sum' if column not in exclude_columns else 'first' for column in df.columns}
+df_metric = df.groupby(pd.Grouper(key='date', freq=group_column)).agg(agg_functions)
+
+# df_metric = df.groupby(date_options).sum()
+# Format the date column based on grouping option
+if group_by == 'Group by Month':
+    df_metric['date'] = df_metric['date'].dt.to_period('M').dt.strftime('%Y-%m')
+elif group_by == 'Group by Week Number':
+    df_metric['date'] = df_metric['date'].dt.to_period('W').dt.strftime('%Y-%W')
+
 
 rev_current = df_metric['Net Sales'].iloc[-1]
 rev_prev = df_metric['Net Sales'].iloc[-2]
@@ -84,9 +132,64 @@ with col1:
 with col2:
     st.metric("Guest Count", guest_current, delta=guest_delta, delta_color='normal', help='Change in guests from previous time period')
 
-dftotal = hp.main_sum_org(df, date_options, drop_cols, None)
+# dftotal = hp.main_sum_org(df, date_options, drop_cols, None)
+dftotal = hp2.main_sum(df_metric,drop_cols,None)
 
 
+# -----------------------
+# Metric results / group by date
+# transform DF
+df_metric = hp2.transform(df, 'sum', group_by, date_options)
+st.subheader("Averages 平均")
+dfmeans = hp2.transform(df, 'mean', group_by, date_options)
+st.write(hp2.main_mean(dfmeans))
+
+
+
+# Line plot
+st.subheader(f'Average Net Revenue per {date_options[group_by]}')
+# Apply a 3-month moving average to the 'revenue' column
+if date_options[group_by] == None:
+    window_size = 14
+elif date_options[group_by] == 'M':
+    window_size = 1
+else:
+    window_size = 4
+    
+dfmeans['smoothed_revenue'] = dfmeans['Net Sales'].rolling(window_size, min_periods=1).mean()
+dfmeans['smoothed_Per_Guest'] = dfmeans['Per_Guest'].rolling(window_size, min_periods=1).mean()
+dfmeans['smoothed_Guests'] = dfmeans['Guests'].rolling(window_size, min_periods=1).mean()
+df['smoothed_revenue'] = df['Net Sales'].rolling(window_size, min_periods=1).mean()
+df['smoothed_Per_Guest'] = df['Per_Guest'].rolling(window_size, min_periods=1).mean()
+df['smoothed_Guests'] = df['Guests'].rolling(window_size, min_periods=1).mean()
+
+st.line_chart(dfmeans['smoothed_revenue'])    
+
+st.subheader(f'Average Revenue per Guests by: {date_options[group_by]}')
+st.line_chart(dfmeans[['smoothed_Per_Guest','smoothed_Guests']])
+
+
+# Line plot
+st.subheader(f'Average Net Revenue per {date_options[group_by]}')
+# Apply a 3-month moving average to the 'revenue' column
+if date_options[group_by] == None:
+    window_size = 14
+elif date_options[group_by] == 'M':
+    window_size = 1
+else:
+    window_size = 4
+    
+dfmeans['smoothed_revenue'] = dfmeans['Net Sales'].rolling(window_size, min_periods=1).mean()
+dfmeans['smoothed_Per_Guest'] = dfmeans['Per_Guest'].rolling(window_size, min_periods=1).mean()
+dfmeans['smoothed_Guests'] = dfmeans['Guests'].rolling(window_size, min_periods=1).mean()
+df['smoothed_revenue'] = df['Net Sales'].rolling(window_size, min_periods=1).mean()
+df['smoothed_Per_Guest'] = df['Per_Guest'].rolling(window_size, min_periods=1).mean()
+df['smoothed_Guests'] = df['Guests'].rolling(window_size, min_periods=1).mean()
+
+st.line_chart(dfmeans['smoothed_revenue'])    
+
+st.subheader(f'Average Revenue per Guests by: {date_options[group_by]}')
+st.line_chart(dfmeans[['smoothed_Per_Guest','smoothed_Guests']])
 
 
 
@@ -98,8 +201,27 @@ with col1:
 with col2:
     # revenue chart
     st.markdown(' **** ')
-    st.line_chart(df_metric['Net Sales'].reset_index(), x=date_options)
+    st.line_chart(df_metric['Net Sales'])    
     # guest count chart
-    st.bar_chart(df_metric['Guests'].reset_index(), x=date_options)
+    st.bar_chart(df_metric['Guests'])
 
 
+
+# NORMALIZED NUMBERS
+st.subheader('Normalized Numbers')
+
+df_metric['smoothed_revenue'] = df_metric['Net Sales'].rolling(window_size, min_periods=1).mean()
+df_metric['smoothed_Per_Guest'] = df_metric['Per_Guest'].rolling(window_size, min_periods=1).mean()
+df_metric['smoothed_Guests'] = df_metric['Guests'].rolling(window_size, min_periods=1).mean()
+
+# Select the columns to normalize
+columns_to_normalize = ['smoothed_revenue', 'smoothed_Per_Guest', 'smoothed_Guests']
+# Perform min-max scaling
+scaler = MinMaxScaler()
+df_metric[columns_to_normalize] = scaler.fit_transform(df_metric[columns_to_normalize])
+st.line_chart(df_metric[['smoothed_revenue', 'smoothed_Per_Guest', 'smoothed_Guests']])
+
+# PLOT REGRESSION
+# Call the regression function
+plot = skh.regression(df)
+st.pyplot(plot)

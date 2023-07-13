@@ -5,7 +5,10 @@ import streamlit as st
 def main_clean(df):
     df = df.drop(df.index[[0,1]])
     df = df.rename(columns={'Unnamed: 0':'date'})
-    df = df.drop(columns=['Code','Cost','Cost %','Profit','Profit %','Service Charges','Table Turns','Rev. /m²','Seat Occ. %','Tips','Table Use'])
+    try:
+        df = df.drop(columns=['Code','Cost','Cost %','Profit','Profit %','Service Charges','Table Turns','Rev. /m²','Seat Occ. %','Tips','Table Use'])
+    except:
+        pass
 
     # Covert to Datetime Add Week, Month, Year, weekday
     df['date'] = pd.to_datetime(df['date'])
@@ -16,6 +19,7 @@ def main_clean(df):
     
     # remove hours and others from the date column
     df['date'] = df['date'].dt.strftime('%Y-%m-%d')
+    
     
     # guest conversion
     try:
@@ -77,15 +81,17 @@ def main_org(df, date_options, drop_cols, traffic):
                         {
                         'Net Sales':"¥{:,.0f}",
                         'Per_Guest':"¥{:,.0f}",
-                        'guest_conversion':"% {:,.3f}",
+                        'guest_conversion':"% {:,.4f}",
                         'Traffic':"{:,.0f}",
                         'Guests':"{:,.0f}",
+                        'Discounts':"{:,.0f}",
                         }
                     )
                 # .format("{:,.0f}") ALL COLUMNS
                 .background_gradient( subset=['Per_Guest'],cmap='Blues')
                 .background_gradient( subset=['Net Sales'], cmap='viridis')
                 .background_gradient( subset=['Guests'], cmap='OrRd')
+                .background_gradient( subset=['Discounts'], cmap='viridis')
                 )
 
     return df
@@ -126,7 +132,7 @@ def main_sum_org(df, date_options, drop_cols, traffic):
                         {
                         'Net Sales':"¥{:,.0f}",
                         'Per_Guest':"¥{:,.0f}",
-                        'guest_conversion':"% {:,.3f}",
+                        'guest_conversion':"% {:,.4f}",
                         'Traffic':"{:,.0f}",
                         'Guests':"{:,.0f}",
                         }
@@ -151,7 +157,7 @@ def weekday_df(df, traffic):
     dfweek['avg guest spend']= dfweek['Net Sales']/ dfweek['Guests']
     dfweek[cols].style.format("{:,.0f}")
     
-    drop_cols = ['week_num','year','Checks', 'Discounts', 'Gross Sales', 'Per Check','Void','Avg Mins','Taxes', 'Avg Price','Avg Spend','Per Guest']
+    drop_cols = ['week_num','year','Checks', 'Gross Sales', 'Per Check','Void','Avg Mins','Taxes', 'Avg Price','Avg Spend','Per Guest']
 
     # style!
     dfweek = (dfweek
@@ -163,12 +169,14 @@ def weekday_df(df, traffic):
                         'avg guest spend':"¥{:,.0f}",
                         'Traffic':"{:,.0f}",
                         'Guests':"{:,.0f}",
+                        'Discounts':"{:,.0f}"
                         }
                     )
                 # .format("{:,.0f}") ALL COLUMNS
                 .background_gradient( subset=['avg guest spend'],cmap='Blues')
                 .background_gradient( subset=['Net Sales'], cmap='viridis')
                 .background_gradient( subset=['Guests'], cmap='OrRd')
+                .background_gradient( subset=['Discounts'], cmap='viridis')
                 )
 
     
@@ -180,6 +188,8 @@ def weekday_df(df, traffic):
 def plot_avg(df,date_options):
     dfchart = df.groupby(['year',date_options]).mean().reset_index()
     return dfchart['Net Sales']
+
+    
 
 # Plot Line Chart of average customer spend
 def customer_avg(df,date_options):
