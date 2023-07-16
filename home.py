@@ -70,9 +70,9 @@ if check_password():
     group_by = st.selectbox('Select Grouping Option', list(date_options.keys()))
 
 
-    dfx = pd.read_excel('data/xtd.xlsx',engine='openpyxl', header=12)
-    dfk = pd.read_excel('data/kc.xlsx',engine='openpyxl', header=12)
-    dfp = pd.read_excel('data/ptm.xlsx',engine='openpyxl', header=12)
+    dfx = pd.read_excel('data/xtd.xlsx',engine='openpyxl', )
+    dfk = pd.read_excel('data/kc.xlsx',engine='openpyxl', header=0)
+    dfp = pd.read_excel('data/ptm.xlsx',engine='openpyxl', header=0)
 
     dfx = hp.main_clean(dfx)
     dfk = hp.main_clean(dfk)
