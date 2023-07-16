@@ -48,6 +48,8 @@ if check_password():
 
     st.title('Sales by Product Categories')
     st.write('Category sales per store per store. Select the store you want to view and then the categories if you want to look at by sales or by qty sold.')
+    st.warning('JULY DATA INCOMPLETE! Will update at the end of the month')
+
 
     ### Get Online or Offline file:
     try:
