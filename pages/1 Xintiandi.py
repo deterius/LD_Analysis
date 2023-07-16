@@ -49,7 +49,7 @@ if check_password():
     group_by = ph.groupings(date_options)
 
     st.title('Revenue Dashboard')
-    df = pd.read_excel('data/xtd.xlsx',engine='openpyxl', header=12)
+    df = pd.read_excel('data/xtd.xlsx',engine='openpyxl')
     df = hp.main_clean(df)
 
     # df specify time window

@@ -52,7 +52,7 @@ if check_password():
 
     ### Get Online or Offline file:
     try:
-        df = pd.read_excel('data/ptm.xlsx',engine='openpyxl', header=12)
+        df = pd.read_excel('data/ptm.xlsx',engine='openpyxl')
         df = hp.main_clean(df)
     except:
         # initialize the gspread client

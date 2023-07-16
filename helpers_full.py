@@ -65,7 +65,6 @@ def clean(df):
         'WM':'Sets',
         
 
-        # Add more mappings here if needed
     }
 
     # Function to categorize item codes

@@ -3,8 +3,8 @@ import numpy as np
 import streamlit as st
 
 def main_clean(df):
-    df = df.drop(df.index[[0,1]])
-    df = df.rename(columns={'Unnamed: 0':'date'})
+    # df = df.drop(df.index[[0,1]])
+    # df = df.rename(columns={'Unnamed: 0':'date'})
     try:
         df = df.drop(columns=['Code','Cost','Cost %','Profit','Profit %','Service Charges','Table Turns','Rev. /m²','Seat Occ. %','Tips','Table Use'])
     except:
