@@ -74,7 +74,6 @@ if check_password():
     df = hpf.clean(df)
 
 
-
     # Store selection
     all_stores = df['store'].unique().tolist()
     all_stores.append('ALL')

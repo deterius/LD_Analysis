@@ -153,20 +153,20 @@ def get_guests(store):
         return df
     
     if store == 'KC':
-        df_guests = pd.read_excel('data/kc.xlsx',engine='openpyxl', header=12)
+        df_guests = pd.read_excel('data/kc.xlsx',engine='openpyxl', header=0)
         df = clean_guests(df_guests)
     elif store == 'XTD':
-        df_guests = pd.read_excel('data/xtd.xlsx',engine='openpyxl', header=12)
+        df_guests = pd.read_excel('data/xtd.xlsx',engine='openpyxl', header=0)
         df = clean_guests(df_guests)
 
     elif store == 'PTM':
-        df_guests = pd.read_excel('data/ptm.xlsx',engine='openpyxl', header=12)
+        df_guests = pd.read_excel('data/ptm.xlsx',engine='openpyxl', header=0)
         df = clean_guests(df_guests)
 
     else:
-        dfk = pd.read_excel('data/kc.xlsx',engine='openpyxl', header=12)
-        dfx = pd.read_excel('data/xtd.xlsx',engine='openpyxl', header=12)
-        dfp = pd.read_excel('data/ptm.xlsx',engine='openpyxl', header=12)
+        dfk = pd.read_excel('data/kc.xlsx',engine='openpyxl', header=0)
+        dfx = pd.read_excel('data/xtd.xlsx',engine='openpyxl', header=0)
+        dfp = pd.read_excel('data/ptm.xlsx',engine='openpyxl', header=0)
         
         dfk = hp.main_clean(dfk)
         dfx = hp.main_clean(dfx)
